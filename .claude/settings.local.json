@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:build.nvidia.com)"
+      "WebFetch(domain:build.nvidia.com)",
+      "Bash(npx wrangler r2 object list:*)"
     ]
   }
 }

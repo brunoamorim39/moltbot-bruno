@@ -239,7 +239,7 @@ if (isNvidia) {
     config.models.providers = config.models.providers || {};
     config.models.providers.openai = {
         baseUrl: 'https://integrate.api.nvidia.com/v1',
-        api: 'openai-responses',  // OpenAI-compatible chat completions
+        api: 'openai-completions',
         models: [
             { id: 'moonshotai/kimi-k2.5', name: 'Kimi K2.5', contextWindow: 128000 }
         ]
