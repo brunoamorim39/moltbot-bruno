@@ -163,8 +163,6 @@ if (config.models?.providers?.anthropic?.models) {
     }
 }
 
-
-
 // Gateway configuration
 config.gateway.port = 18789;
 config.gateway.mode = 'local';
@@ -187,17 +185,31 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
     config.channels.telegram = config.channels.telegram || {};
     config.channels.telegram.botToken = process.env.TELEGRAM_BOT_TOKEN;
     config.channels.telegram.enabled = true;
-    config.channels.telegram.dm = config.channels.telegram.dm || {};
-    config.channels.telegram.dmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+    const telegramDmPolicy = process.env.TELEGRAM_DM_POLICY || 'pairing';
+    config.channels.telegram.dmPolicy = telegramDmPolicy;
+    if (process.env.TELEGRAM_DM_ALLOW_FROM) {
+        // Explicit allowlist: "123,456,789" → ['123', '456', '789']
+        config.channels.telegram.allowFrom = process.env.TELEGRAM_DM_ALLOW_FROM.split(',');
+    } else if (telegramDmPolicy === 'open') {
+        // "open" policy requires allowFrom: ["*"]
+        config.channels.telegram.allowFrom = ['*'];
+    }
 }
 
 // Discord configuration
+// Note: Discord uses nested dm.policy, not flat dmPolicy like Telegram
+// See: https://github.com/moltbot/moltbot/blob/v2026.1.24-1/src/config/zod-schema.providers-core.ts#L147-L155
 if (process.env.DISCORD_BOT_TOKEN) {
     config.channels.discord = config.channels.discord || {};
     config.channels.discord.token = process.env.DISCORD_BOT_TOKEN;
     config.channels.discord.enabled = true;
+    const discordDmPolicy = process.env.DISCORD_DM_POLICY || 'pairing';
     config.channels.discord.dm = config.channels.discord.dm || {};
-    config.channels.discord.dm.policy = process.env.DISCORD_DM_POLICY || 'pairing';
+    config.channels.discord.dm.policy = discordDmPolicy;
+    // "open" policy requires allowFrom: ["*"]
+    if (discordDmPolicy === 'open') {
+        config.channels.discord.dm.allowFrom = ['*'];
+    }
 }
 
 // Slack configuration
@@ -212,10 +224,31 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
 // Usage: Set AI_GATEWAY_BASE_URL or ANTHROPIC_BASE_URL to your endpoint like:
 //   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic
 //   https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openai
-const baseUrl = process.env.AI_GATEWAY_BASE_URL || process.env.ANTHROPIC_BASE_URL || '';
+const baseUrl = (process.env.AI_GATEWAY_BASE_URL || process.env.ANTHROPIC_BASE_URL || '').replace(/\/+$/, '');
 const isOpenAI = baseUrl.endsWith('/openai');
 
-if (isOpenAI) {
+// Check for NVIDIA API key first (new default provider)
+const nvidiaKey = process.env.NVIDIA_API_KEY;
+const isNvidia = nvidiaKey && !baseUrl; // Only use NVIDIA if no AI Gateway base URL is set
+
+if (isNvidia) {
+    // Configure NVIDIA Kimi K2.5 as the default provider
+    // NVIDIA uses OpenAI-compatible chat completions format
+    console.log('Configuring NVIDIA Kimi K2.5 as default provider');
+    config.models = config.models || {};
+    config.models.providers = config.models.providers || {};
+    config.models.providers.openai = {
+        baseUrl: 'https://integrate.api.nvidia.com/v1',
+        api: 'openai-chat',  // Standard chat completions format
+        models: [
+            { id: 'moonshotai/kimi-k2.5', name: 'Kimi K2.5', contextWindow: 128000 }
+        ]
+    };
+    // Add model to the allowlist so it appears in /models
+    config.agents.defaults.models = config.agents.defaults.models || {};
+    config.agents.defaults.models['openai/moonshotai/kimi-k2.5'] = { alias: 'Kimi K2.5' };
+    config.agents.defaults.model.primary = 'openai/moonshotai/kimi-k2.5';
+} else if (isOpenAI) {
     // Create custom openai provider config with baseUrl override
     // Omit apiKey so moltbot falls back to OPENAI_API_KEY env var
     console.log('Configuring OpenAI provider with base URL:', baseUrl);

@@ -14,14 +14,17 @@ export interface MoltbotEnv {
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_BASE_URL?: string;
   OPENAI_API_KEY?: string;
+  NVIDIA_API_KEY?: string; // NVIDIA API key for Kimi K2.5
   MOLTBOT_GATEWAY_TOKEN?: string; // Gateway token (mapped to CLAWDBOT_GATEWAY_TOKEN for container)
 
   CLAWDBOT_BIND_MODE?: string;
   DEV_MODE?: string; // Set to 'true' for local dev (skips CF Access auth + moltbot device pairing)
+  E2E_TEST_MODE?: string; // Set to 'true' for E2E tests (skips CF Access auth but keeps device pairing)
   DEBUG_ROUTES?: string; // Set to 'true' to enable /debug/* routes
   SANDBOX_SLEEP_AFTER?: string; // How long before sandbox sleeps: 'never' (default), or duration like '10m', '1h'
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_DM_POLICY?: string;
+  TELEGRAM_DM_ALLOW_FROM?: string; // Comma-separated allowlist for Telegram DMs
   DISCORD_BOT_TOKEN?: string;
   DISCORD_DM_POLICY?: string;
   SLACK_BOT_TOKEN?: string;
@@ -32,6 +35,7 @@ export interface MoltbotEnv {
   // R2 credentials for bucket mounting (set via wrangler secret)
   R2_ACCESS_KEY_ID?: string;
   R2_SECRET_ACCESS_KEY?: string;
+  R2_BUCKET_NAME?: string; // Override bucket name (default: 'moltbot-data')
   CF_ACCOUNT_ID?: string; // Cloudflare account ID for R2 endpoint
   // Browser Rendering binding for CDP shim
   BROWSER?: Fetcher;

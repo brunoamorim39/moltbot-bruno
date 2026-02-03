@@ -2,14 +2,16 @@ import type { MoltbotEnv } from '../types';
 
 /**
  * Build environment variables to pass to the Moltbot container process
- * 
+ *
  * @param env - Worker environment bindings
  * @returns Environment variables record
  */
 export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   const envVars: Record<string, string> = {};
 
-  const isOpenAIGateway = env.AI_GATEWAY_BASE_URL?.endsWith('/openai');
+  // Normalize the base URL by removing trailing slashes
+  const normalizedBaseUrl = env.AI_GATEWAY_BASE_URL?.replace(/\/+$/, '');
+  const isOpenAIGateway = normalizedBaseUrl?.endsWith('/openai');
 
   // AI Gateway vars take precedence
   // Map to the appropriate provider env var based on the gateway endpoint
@@ -29,14 +31,24 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
     envVars.OPENAI_API_KEY = env.OPENAI_API_KEY;
   }
 
+  // Add NVIDIA support - pass NVIDIA API key as both OPENAI_API_KEY (for OpenAI-compatible API)
+  // and NVIDIA_API_KEY (for explicit detection in start-moltbot.sh)
+  if (env.NVIDIA_API_KEY) {
+    envVars.NVIDIA_API_KEY = env.NVIDIA_API_KEY;
+    // NVIDIA uses OpenAI-compatible format, so also set OPENAI_API_KEY if not already set
+    if (!envVars.OPENAI_API_KEY) {
+      envVars.OPENAI_API_KEY = env.NVIDIA_API_KEY;
+    }
+  }
+
   // Pass base URL (used by start-moltbot.sh to determine provider)
-  if (env.AI_GATEWAY_BASE_URL) {
-    envVars.AI_GATEWAY_BASE_URL = env.AI_GATEWAY_BASE_URL;
+  if (normalizedBaseUrl) {
+    envVars.AI_GATEWAY_BASE_URL = normalizedBaseUrl;
     // Also set the provider-specific base URL env var
     if (isOpenAIGateway) {
-      envVars.OPENAI_BASE_URL = env.AI_GATEWAY_BASE_URL;
+      envVars.OPENAI_BASE_URL = normalizedBaseUrl;
     } else {
-      envVars.ANTHROPIC_BASE_URL = env.AI_GATEWAY_BASE_URL;
+      envVars.ANTHROPIC_BASE_URL = normalizedBaseUrl;
     }
   } else if (env.ANTHROPIC_BASE_URL) {
     envVars.ANTHROPIC_BASE_URL = env.ANTHROPIC_BASE_URL;
@@ -47,6 +59,7 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.CLAWDBOT_BIND_MODE) envVars.CLAWDBOT_BIND_MODE = env.CLAWDBOT_BIND_MODE;
   if (env.TELEGRAM_BOT_TOKEN) envVars.TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN;
   if (env.TELEGRAM_DM_POLICY) envVars.TELEGRAM_DM_POLICY = env.TELEGRAM_DM_POLICY;
+  if (env.TELEGRAM_DM_ALLOW_FROM) envVars.TELEGRAM_DM_ALLOW_FROM = env.TELEGRAM_DM_ALLOW_FROM;
   if (env.DISCORD_BOT_TOKEN) envVars.DISCORD_BOT_TOKEN = env.DISCORD_BOT_TOKEN;
   if (env.DISCORD_DM_POLICY) envVars.DISCORD_DM_POLICY = env.DISCORD_DM_POLICY;
   if (env.SLACK_BOT_TOKEN) envVars.SLACK_BOT_TOKEN = env.SLACK_BOT_TOKEN;
