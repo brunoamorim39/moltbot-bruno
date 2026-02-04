@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:build.nvidia.com)",
-      "Bash(npx wrangler r2 object list:*)"
+      "Bash(npx wrangler r2 object list:*)",
+      "mcp__plugin_cloudflare_cloudflare-workers-observability__set_active_account",
+      "mcp__plugin_cloudflare_cloudflare-workers-observability__query_worker_observability"
     ]
   }
 }
