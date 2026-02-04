@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { AppEnv } from '../types';
 import { MOLTBOT_PORT } from '../config';
-import { findExistingMoltbotProcess } from '../gateway';
+import { findExistingMoltbotProcess, ensureMoltbotGateway } from '../gateway';
 
 /**
  * Public routes - NO Cloudflare Access authentication required
@@ -50,6 +50,35 @@ publicRoutes.get('/api/status', async (c) => {
     }
   } catch (err) {
     return c.json({ ok: false, status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// GET /api/wake - Wake up the gateway and return status (for external monitoring like UptimeKuma)
+// This endpoint will start the gateway if it's not running, allowing external services to keep it warm
+publicRoutes.get('/api/wake', async (c) => {
+  const sandbox = c.get('sandbox');
+
+  try {
+    // Start the gateway if not running
+    await ensureMoltbotGateway(sandbox, c.env);
+
+    // Gateway should now be running, verify it
+    const process = await findExistingMoltbotProcess(sandbox);
+    if (!process) {
+      return c.json({ ok: false, status: 'start_failed' });
+    }
+
+    return c.json({
+      ok: true,
+      status: 'running',
+      processId: process.id,
+    });
+  } catch (err) {
+    return c.json({
+      ok: false,
+      status: 'error',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
   }
 });
 

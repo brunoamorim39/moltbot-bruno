@@ -233,6 +233,27 @@ Access the admin UI at `/_admin/` to:
 
 The admin UI requires Cloudflare Access authentication (or `DEV_MODE=true` for local development).
 
+## Public API Endpoints
+
+These endpoints are available without authentication for health checks and monitoring:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/status` | Check if the gateway is running (doesn't start it) |
+| `GET /api/wake` | Start the gateway if not running and return status |
+| `GET /sandbox-health` | Basic health check for the worker |
+
+### `/api/wake` - Keep Instance Warm
+
+The `/api/wake` endpoint is designed for external monitoring services (like UptimeKuma) to keep the instance warm. Unlike `/api/status` which only checks status, `/api/wake` will start the gateway if it's not already running.
+
+**Response:**
+```json
+{ "ok": true, "status": "running", "processId": "..." }
+```
+
+**Use case:** Configure your uptime monitor to ping `/api/wake` instead of `/api/status` to ensure the gateway stays warm and responsive.
+
 ## Debug Endpoints
 
 Debug endpoints are available at `/debug/*` when enabled (requires `DEBUG_ROUTES=true` and Cloudflare Access):

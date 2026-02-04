@@ -2,6 +2,31 @@
 
 This document tracks customizations made to this fork that **must be preserved** when merging from upstream.
 
+## Custom Endpoints
+
+### `/api/wake` - Gateway Wake Endpoint
+
+**File:** `src/routes/public.ts`
+
+This endpoint starts the gateway if it's not running, allowing external monitoring services (like UptimeKuma) to keep the instance warm.
+
+```typescript
+// GET /api/wake - Wake up the gateway and return status
+publicRoutes.get('/api/wake', async (c) => {
+  // Starts gateway via ensureMoltbotGateway(), then verifies it's running
+  // Returns: { ok: true, status: 'running', processId: '...' }
+});
+```
+
+**Why it exists:** The `/api/status` endpoint only checks if the gateway is running - it doesn't start it. External monitors pinging `/api/status` can't keep the instance warm. The `/api/wake` endpoint solves this by starting the gateway before returning status.
+
+**Required imports in `src/routes/public.ts`:**
+```typescript
+import { findExistingMoltbotProcess, ensureMoltbotGateway } from '../gateway';
+```
+
+---
+
 ## Critical Files to Review After Upstream Merge
 
 ### `wrangler.jsonc`
@@ -63,5 +88,6 @@ After running `git fetch upstream && git merge upstream/main`:
 - [ ] Check `wrangler.jsonc` - bucket_name should be `moltbot-bruno`
 - [ ] Check `wrangler.jsonc` - worker name should be `moltbot-bruno`
 - [ ] Check `src/config.ts` - default bucket should be `moltbot-bruno`
+- [ ] Check `src/routes/public.ts` - `/api/wake` endpoint should exist with `ensureMoltbotGateway` import
 - [ ] Verify secrets are still configured: `npx wrangler secret list`
 - [ ] Test deployment before pushing to main
